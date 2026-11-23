@@ -1,0 +1,24 @@
+# gitleaks configuration: the default ruleset plus a few rules for this kind of repository.
+# Used by scripts/secret-scan.sh. Without gitleaks installed, the script falls back to regexes.
+
+title = "ai-harness"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "authorization-header-literal"
+description = "Authorization header carrying a literal credential instead of a ${VARIABLE}"
+regex = '''(?i)authorization["']?\s*[:=]\s*["']?(bearer|basic|token)\s+[a-z0-9._~+/=-]{8,}'''
+keywords = ["authorization"]
+
+[[rules]]
+id = "api-key-prefix-sk"
+description = "API key with an sk- prefix"
+regex = '''\bsk-[A-Za-z0-9_-]{20,}'''
+keywords = ["sk-"]
+
+[allowlist]
+description = "Placeholders and this configuration file itself"
+paths = ['''^\.gitleaks\.toml$''', '''^scripts/secret-scan\.sh$''']
+regexes = ['''\$\{[A-Z0-9_]+\}''']
