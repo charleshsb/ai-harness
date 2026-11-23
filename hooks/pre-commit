@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Pre-commit: refuse commits on main/master, then scan staged changes for secrets.
+# Install with: adapters/claude/install.sh --git-hooks <repo>, or symlink it into <repo>/.git/hooks/.
+set -u
+
+branch="$(git symbolic-ref --short -q HEAD 2>/dev/null || true)"
+case "$branch" in
+  main|master)
+    echo "Commit blocked: you are on '$branch'." >&2
+    echo "Create a branch first, your changes come with you:" >&2
+    echo "  git switch -c <type>/<short-name>" >&2
+    echo "Emergency only, with the owner's explicit approval: git commit --no-verify" >&2
+    exit 1
+    ;;
+esac
+
+# Resolve this script's real location through symlinks (macOS bash 3.2 has no readlink -f).
+src="$0"
+while [ -L "$src" ]; do
+  dir="$(cd "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  case "$src" in /*) ;; *) src="$dir/$src" ;; esac
+done
+scan="$(cd "$(dirname "$src")" && pwd)/../scripts/secret-scan.sh"
+
+if [ -x "$scan" ]; then
+  "$scan" || exit 1
+else
+  echo "pre-commit: secret-scan.sh not found next to the harness, skipping secret scan." >&2
+fi
+exit 0
